@@ -1,0 +1,22 @@
+# Build artifacts
+*.o
+*.out
+*.a
+*.so
+
+# Executable
+invrt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+*.d

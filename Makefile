@@ -1,7 +1,7 @@
 .PHONY: all build clean help
 
 CC := gcc
-CFLAGS := -Wall -Wextra -O2 -static
+CFLAGS := -Wall -Wextra -O2
 SRC_DIR := src
 TARGET := invrt
 

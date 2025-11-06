@@ -1,5 +1,4 @@
 name: Release
-
 on:
   push:
     tags:
@@ -14,32 +13,33 @@ jobs:
           - os: ubuntu-latest
             target: linux_amd64
             cc: gcc
-          - os: ubuntu-latest
-            target: linux_arm64
-            cc: aarch64-linux-gnu-gcc
+            cflags: -Wall -Wextra -O2
+            ldflags: ""
           - os: macos-latest
             target: darwin_arm64
             cc: clang
+            cflags: -Wall -Wextra -O2 -arch arm64
+            ldflags: -arch arm64
+          - os: macos-latest
+            target: darwin_amd64
+            cc: clang
+            cflags: -Wall -Wextra -O2 -arch x86_64
+            ldflags: -arch x86_64
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install cross-compilation tools (Linux ARM64)
-        if: matrix.target == 'linux_arm64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
+      
       - name: Build
         env:
           CC: ${{ matrix.cc }}
-          CFLAGS: -Wall -Wextra -O2 -static
+          CFLAGS: ${{ matrix.cflags }}
+          LDFLAGS: ${{ matrix.ldflags }}
         run: make build
-
+      
       - name: Rename binary
         run: |
           mv invrt invrt-${{ matrix.target }}
-
+      
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -49,19 +49,29 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Download all artifacts
         uses: actions/download-artifact@v4
-
-      - name: Display artifacts
-        run: ls -R
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
         with:
-          files: invrt-*/invrt-*
+          path: artifacts
+      
+      - name: Display artifacts
+        run: ls -R artifacts
+      
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          find artifacts -type f -name "invrt-*" -exec cp {} release/ \;
+          ls -lh release/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/invrt-*
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

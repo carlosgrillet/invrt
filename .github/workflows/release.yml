@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux_amd64
+            cc: gcc
+          - os: ubuntu-latest
+            target: linux_arm64
+            cc: aarch64-linux-gnu-gcc
+          - os: macos-latest
+            target: darwin_arm64
+            cc: clang
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'linux_arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        env:
+          CC: ${{ matrix.cc }}
+          CFLAGS: -Wall -Wextra -O2 -static
+        run: make build
+
+      - name: Rename binary
+        run: |
+          mv invrt invrt-${{ matrix.target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: invrt-${{ matrix.target }}
+          path: invrt-${{ matrix.target }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Display artifacts
+        run: ls -R
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: invrt-*/invrt-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
